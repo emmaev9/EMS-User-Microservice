@@ -1,0 +1,122 @@
+version: '3'
+services:
+  userDB:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: 'personDB'
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'root'
+    ports:
+      - "5434:5432"
+
+  deviceDB:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: 'deviceDB'
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'root'
+    ports:
+      - "5433:5432"
+
+  measurementDB:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: 'measurementDB'
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'root'
+    ports:
+      - "5435:5432"
+
+  chatDB:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: 'chatDB'
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'root'
+    ports:
+      - "5439:5432"
+
+  rabbitmq:
+      image: rabbitmq:3-management-alpine
+      container_name: 'rabbitmq'
+      ports:
+        - 5672:5672
+        - 15672:15672
+      volumes:
+        - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+        - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+
+  person-microservice:
+    image: user_app
+    depends_on:
+      - userDB
+      - rabbitmq
+    environment:
+      - APP_JWT_SECRET=secretKey
+      - DB_IP=userDB
+      - DB_PORT=5432
+      - DB_DBNAME=personDB
+      - DB_USER=postgres
+      - DB_PASSWORD=root
+    ports:
+      - "8080:8080"
+
+
+  device-microservice:
+    image: device_app
+    depends_on:
+      - rabbitmq
+      - deviceDB
+    environment:
+      - APP_JWT_SECRET=secretKey
+      - DB_IP=deviceDB
+      - DB_PORT=5432
+      - DB_DBNAME=deviceDB
+      - DB_USER=postgres
+      - DB_PASSWORD=root
+    ports:
+      - "8082:8082"
+
+  consumer-microservice:
+    image: measurement_app
+    depends_on:
+      - rabbitmq
+      - measurementDB
+
+    environment:
+      - DB_IP=measurementDB
+      - DB_PORT=5432
+      - DB_DBNAME=measurementDB
+      - DB_USER=postgres
+      - DB_PASSWORD=root
+    ports:
+      - "8085:8085"
+
+  chat-microservice:
+    image: chat_app
+    depends_on:
+      - chatDB
+      - rabbitmq
+    environment:
+      - APP_JWT_SECRET=secretKey
+      - DB_IP=chatDB
+      - DB_PORT=5432
+      - DB_DBNAME=chatDB
+      - DB_USER=postgres
+      - DB_PASSWORD=root
+    ports:
+      - "8089:8089"
+
+  frontend:
+    image: frontend
+    depends_on:
+      - userDB
+      - deviceDB
+    ports:
+      - "3030:80"
+    stdin_open: true
+
+
+
+
+
